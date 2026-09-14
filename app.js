@@ -88,3 +88,93 @@ if (forgotPasswordBtn) {
     forgotPasswordBtn.textContent = 'Esqueci a palavra-passe';
   });
 }
+//
+// RECUPERAÇÃO DE PALAVRA-PASSE
+//
+
+async function verificarRecuperacaoPassword() {
+  const { data, error } = await supabaseClient.auth.getSession();
+
+  if (error) {
+    console.error('Erro ao verificar sessão:', error);
+    return;
+  }
+
+  const session = data.session;
+
+  // Verifica se estamos numa sessão de recuperação
+  if (session && window.location.hash.includes('type=recovery')) {
+    const loginScreen = document.getElementById('loginScreen');
+    const loginForm = document.getElementById('loginForm');
+    const resetScreen = document.getElementById('resetPasswordScreen');
+
+    if (loginForm) loginForm.style.display = 'none';
+    if (resetScreen) resetScreen.style.display = 'block';
+    if (loginScreen) loginScreen.style.display = 'flex';
+
+    console.log('Modo de recuperação de palavra-passe ativado.');
+  }
+}
+
+verificarRecuperacaoPassword();
+
+
+//
+// DEFINIR NOVA PALAVRA-PASSE
+//
+
+const updatePasswordBtn = document.getElementById('updatePasswordBtn');
+
+if (updatePasswordBtn) {
+  updatePasswordBtn.addEventListener('click', async () => {
+
+    const password = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const message = document.getElementById('resetPasswordMessage');
+
+    message.textContent = '';
+
+    if (password.length < 6) {
+      message.style.color = '#c00';
+      message.textContent =
+        'A palavra-passe deve ter pelo menos 6 caracteres.';
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      message.style.color = '#c00';
+      message.textContent =
+        'As palavras-passe não coincidem.';
+      return;
+    }
+
+    updatePasswordBtn.disabled = true;
+    updatePasswordBtn.textContent = 'A guardar...';
+
+    const { error } = await supabaseClient.auth.updateUser({
+      password: password
+    });
+
+    if (error) {
+      console.error(error);
+      message.style.color = '#c00';
+      message.textContent =
+        'Erro ao alterar a palavra-passe: ' + error.message;
+
+      updatePasswordBtn.disabled = false;
+      updatePasswordBtn.textContent =
+        'DEFINIR NOVA PALAVRA-PASSE';
+
+      return;
+    }
+
+    message.style.color = '#16803c';
+    message.textContent =
+      'Palavra-passe alterada com sucesso! A entrar no sistema...';
+
+    setTimeout(() => {
+      window.location.hash = '';
+      window.location.reload();
+    }, 1500);
+  });
+}
