@@ -85,6 +85,10 @@
   <div class="toast" id="toast"><span>✓</span><p id="toastText">Acção realizada com sucesso.</p></div>
   <div class="modal-backdrop" id="modalBackdrop"><form class="modal" id="orderForm"><button type="button" class="modal-close" id="modalClose">×</button><p class="eyebrow">NOVA ORDEM DE SERVIÇO</p><h2>Criar ordem</h2><label>Cliente<input required id="formClient" name="client" placeholder="Nome do cliente" /></label><label>Tipo de serviço<select id="formService" name="service"><option>Electricidade</option><option>Canalização</option><option>Climatização</option><option>Manutenção geral</option></select></label><label>Prioridade<select id="formPriority" name="priority"><option>Normal</option><option>Alta</option><option>Urgente</option><option>SOS</option></select></label><label>Descrição<textarea required name="description" placeholder="Descreva o pedido do cliente"></textarea></label><button class="btn primary" type="submit">Criar ordem de serviço</button></form></div>
   <div class="modal-backdrop" id="flowBackdrop"><div class="modal" id="flowModal"></div></div>
-  <script src="app.js"></script>
+     ...
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
 </body>
 </html>
