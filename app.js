@@ -1,3 +1,10 @@
+const SUPABASE_URL = 'https://dvwodxkeasqvbjneuqhv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_wl7GphLmmD7AO0Ls2GKsnA_J5sm7P5C';
+
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
 const STORE='fixe-erp-operational-v1';
 const fmt=v=>`Kz ${Number(v||0).toLocaleString('pt-AO')}`;
 const code=(p,n)=>`${p}-2026-${String(180+n).padStart(4,'0')}`;
