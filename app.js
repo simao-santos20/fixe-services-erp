@@ -224,9 +224,6 @@ function mostrarTelaNovaPassword() {
 // BOTÃO ESQUECI A PALAVRA-PASSE
 //
 
-const forgotPasswordBtn =
-  document.getElementById('forgotPasswordBtn');
-
 if (forgotPasswordBtn) {
 
   forgotPasswordBtn.addEventListener('click', async () => {
