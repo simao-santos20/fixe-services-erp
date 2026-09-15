@@ -122,52 +122,51 @@ document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',(
 document.getElementById('newOrder').onclick=openOrder;document.getElementById('newOrder2').onclick=openOrder;document.getElementById('newIncident').onclick=incident;document.getElementById('newIncident2').onclick=incident;document.getElementById('newClient').onclick=clientForm;document.getElementById('clientSearch').oninput=e=>renderClients(e.target.value);document.getElementById('newEmployee').onclick=employeeForm;document.getElementById('newTeam').onclick=teamForm;document.getElementById('mapOpen').onclick=()=>{document.getElementById('operationMap').hidden=false;document.getElementById('operationMap').scrollIntoView({behavior:'smooth'})};document.getElementById('mapClose').onclick=()=>document.getElementById('operationMap').hidden=true;document.getElementById('stockEntry').onclick=()=>stockForm();document.getElementById('newInvoice').onclick=invoiceForm;document.getElementById('createPurchaseRequest').onclick=()=>{switchView('registry','purchases');toast('Requisição de compra preparada.')};document.getElementById('registryCreate').onclick=()=>window.currentModule==='audit'?toast('Exportação preparada para integração com Excel/PDF.'):registryForm();
 document.getElementById('modalClose').onclick=()=>document.getElementById('modalBackdrop').classList.remove('open');document.getElementById('modalBackdrop').onclick=e=>{if(e.target.id==='modalBackdrop')e.currentTarget.classList.remove('open')};document.getElementById('flowBackdrop').onclick=e=>{if(e.target.id==='flowBackdrop'||e.target.dataset.close!==undefined)closeFlow()};
 document.getElementById('orderForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target),o={id:code('FIXE',db.orders.length+12),client:f.get('client').trim(),place:'Local a confirmar',service:f.get('service'),tech:'Por atribuir',time:'Por agendar',priority:f.get('priority'),state:'Nova',materials:[]};db.orders.unshift(o);log(`Nova ${o.id} criada para ${o.client}.`);save();all();e.target.reset();document.getElementById('modalBackdrop').classList.remove('open');switchView('orders');toast(`Ordem ${o.id} criada.`)};
-document.addEventListener('submit',async e=>{if(e.target.id==='clientForm'){
-  e.preventDefault();
+document.addEventListener('submit', async e => {
+  if (e.target.id === 'clientForm') {
+    e.preventDefault();
 
-  const f = new FormData(e.target);
+    const f = new FormData(e.target);
 
-  const name = f.get('name').trim();
-  const type = f.get('type');
-  const phone = f.get('phone').trim();
-  const nif = f.get('nif').trim() || null;
-  const classify = f.get('classify');
+    const name = f.get('name').trim();
+    const type = f.get('type');
+    const phone = f.get('phone').trim();
+    const nif = f.get('nif').trim() || null;
+    const classify = f.get('classify');
 
-  const clientCode =
-    'CLI-2026-' +
-    String(Date.now()).slice(-6);
+    const clientCode = 'CLI-2026-' + String(Date.now()).slice(-6);
 
-  const { data, error } = await supabaseClient
-    .from('clients')
-    .insert({
-      company_id: '069069f3-cf3b-4d4f-8cf0-5827d051720e',
-      client_code: clientCode,
-      client_type: type.toLowerCase(),
-      name: name,
-      commercial_name: name,
-      nif: nif,
-      phone: phone,
-      whatsapp: phone,
-      active: classify !== 'Inactivo',
-      customer_since: new Date().toISOString().slice(0,10)
-    })
-    .select()
-    .single();
+    const { data, error } = await supabaseClient
+      .from('clients')
+      .insert({
+        company_id: '069069f3-cf3b-4d4f-8cf0-5827d051720e',
+        client_code: clientCode,
+        client_type: type.toLowerCase(),
+        name: name,
+        commercial_name: name,
+        nif: nif,
+        phone: phone,
+        whatsapp: phone,
+        active: true,
+        customer_since: new Date().toISOString().slice(0, 10)
+      })
+      .select()
+      .single();
 
-  if(error){
-    console.error('Erro ao criar cliente:', error);
-    toast('Erro ao criar cliente: ' + error.message);
-    return;
+    if (error) {
+      console.error('Erro ao criar cliente:', error);
+      toast('Erro ao criar cliente: ' + error.message);
+      return;
+    }
+
+    console.log('Cliente criado:', data);
+
+    closeFlow();
+    await renderClients();
+
+    toast(`Cliente ${name} criado com sucesso.`);
   }
-
-  console.log('Cliente criado:', data);
-
-  closeFlow();
-  await renderClients();
-
-  toast(`Cliente ${name} criado com sucesso.`);
-}
-);
+});
 document.addEventListener('click',e=>{let o=db.orders.find(x=>x.id===e.target.dataset.order);if(o)detail(o);if(e.target.dataset.progress){o=db.orders.find(x=>x.id===e.target.dataset.progress);const steps=['Nova','Agendada','Atribuída','Em deslocação','No local','Em execução','Concluída'];o.state=steps[Math.min(steps.indexOf(o.state)+1,steps.length-1)];if(o.state==='Concluída'){const i={id:`FT 2026/${String(92+db.invoices.length).padStart(4,'0')}`,client:o.client,amount:75000,due:'Vence em 7 dias',state:'ABERTA',paid:false};db.invoices.unshift(i);toast('OS concluída e factura criada automaticamente.')}else toast(`OS actualizada para “${o.state}”.`);log(`Estado da ${o.id} actualizado para ${o.state}.`);save();all();closeFlow();detail(o)}if(e.target.dataset.assign){o=db.orders.find(x=>x.id===e.target.dataset.assign);o.tech='Carla Mendes';o.state='Atribuída';log(`Carla Mendes atribuída à ${o.id}.`);save();all();closeFlow();toast('Técnica atribuída e notificada.')}if(e.target.dataset.material){o=db.orders.find(x=>x.id===e.target.dataset.material);const s=db.stock.find(x=>x.qty>0);s.qty--;o.materials.push(`${s.name} (1 ${s.unit})`);log(`1 ${s.unit} de ${s.name} consumido na ${o.id}.`,'Stock');save();all();closeFlow();detail(o);toast('Material consumido; stock actualizado.')}if(e.target.dataset.restock)stockForm(e.target.dataset.restock);if(e.target.dataset.pay){const i=db.invoices.find(x=>x.id===e.target.dataset.pay);i.paid=true;i.state='PAGA';log(`Pagamento de ${i.id} registado.`,'Recebimentos');save();renderFinance();toast('Pagamento registado e factura marcada como paga.')}if(e.target.classList.contains('assign-incident'))incident()});
 document.getElementById('menuBtn').onclick=()=>document.getElementById('sidebar').classList.toggle('open');document.getElementById('notificationBtn').onclick=()=>toast('Notificações: OS atrasadas, stock crítico e pagamento vencido.');document.getElementById('globalSearch').onkeydown=e=>{if(e.key==='Enter'){const q=e.target.value.trim().toLowerCase(),o=db.orders.find(x=>Object.values(x).join(' ').toLowerCase().includes(q));if(o){switchView('orders');toast(`Resultado: ${o.id} · ${o.client}`)}else toast('Nenhum resultado encontrado nos dados locais.')}};document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();document.getElementById('globalSearch').focus()}});document.addEventListener('click',e=>{if(e.target.dataset.employee!==undefined){const n=Number(e.target.dataset.employee),p=db.employees[n];flow(`<form id="employeeStatusForm"><p class="eyebrow">COLABORADOR</p><h2>${p.name}</h2><label>Estado operacional<select name="state"><option ${p.state==='Disponível'?'selected':''}>Disponível</option><option ${p.state==='Em deslocação'?'selected':''}>Em deslocação</option><option ${p.state==='No local'?'selected':''}>No local</option><option ${p.state==='Offline'?'selected':''}>Offline</option></select></label><button class="btn primary">Actualizar estado</button></form>`);window.employeeTarget=n}});document.addEventListener('submit',e=>{if(e.target.id==='employeeStatusForm'){e.preventDefault();const p=db.employees[window.employeeTarget],state=new FormData(e.target).get('state');p.state=state;log(`Estado de ${p.name} actualizado para ${state}.`,'Equipas');save();renderTeam();closeFlow();toast('Estado operacional actualizado.')}});all();
 // RECUPERAÇÃO DE PALAVRA-PASSE
