@@ -27,7 +27,82 @@ function switchView(view,module){document.querySelectorAll('.view').forEach(v=>v
 function renderOrders(filter='all'){const list=filter==='all'?db.orders:db.orders.filter(o=>o.state===filter);document.getElementById('ordersTable').innerHTML=list.map(o=>`<tr><td><strong>${o.id}</strong></td><td><strong>${o.client}</strong><small>${o.place}</small></td><td>${o.service}</td><td>${o.tech}</td><td>${o.time}</td><td>${badge(o.priority)}</td><td><span class="status ${cls(o.state)}">${o.state}</span></td><td><button class="small-btn" data-order="${o.id}">Ver</button></td></tr>`).join('');document.getElementById('allOrderCount').textContent=db.orders.length;document.getElementById('ordersNavCount').textContent=db.orders.length;document.getElementById('lateOrders').textContent=`${db.orders.filter(o=>o.state==='Atrasada').length} ordens atrasadas`}
 function renderRecent(){document.getElementById('recentOrders').innerHTML=db.orders.slice(0,4).map(o=>`<div class="order-preview"><div class="order-number">${o.id.slice(-4)}</div><div><strong>${o.client}</strong><small>${o.service} · ${o.time}</small></div><div><small>${o.tech}</small></div><span class="status ${cls(o.state)}">${o.state}</span></div>`).join('')}
 function renderStock(query=''){const list=db.stock.filter(s=>Object.values(s).join(' ').toLowerCase().includes(query.toLowerCase()));document.getElementById('lowStockMetric').textContent=db.stock.filter(s=>s.qty<=s.min).length;document.getElementById('stockValue').textContent=fmt(db.stock.reduce((x,s)=>x+s.qty*s.cost,0));document.getElementById('stockTable').innerHTML=list.map(s=>`<tr><td><strong>${s.name}</strong></td><td>${s.id}</td><td>Principal</td><td><span class="${s.qty<=s.min/2?'stock-critical':s.qty<=s.min?'stock-low':''}">${s.qty} ${s.unit}</span></td><td>${s.min} ${s.unit}</td><td>${s.supplier}</td><td><button class="small-btn" data-restock="${s.id}">Repor</button></td></tr>`).join('')||'<tr><td colspan="7">Nenhum material encontrado.</td></tr>'}
-async function renderClients(query='') {    const table = document.getElementById('clientsTable');    table.innerHTML =     '<tr><td colspan="7">A carregar clientes...</td></tr>';    const { data, error } = await supabaseClient     .from('clients')     .select(`       id,       client_code,       client_type,       name,       commercial_name,       nif,       phone,       whatsapp,       active     `)     .order('created_at', { ascending: false });    if (error) {      console.error('Erro ao carregar clientes:', error);      table.innerHTML =       `<tr>         <td colspan="7">           Erro ao carregar clientes: ${error.message}         </td>       </tr>`;      return;   }    const clients = (data || []).map(c => ({     id: c.id,     name: c.commercial_name || c.name || 'Sem nome',     nif: c.nif || 'Particular',     type: c.client_type || 'Não definido',     phone: c.phone || c.whatsapp || 'Sem contacto',     last: 'Sem OS',     classify: c.active ? 'Activo' : 'Inactivo',     status: c.active ? 'Activo' : 'Inactivo'   }));    const search = query.trim().toLowerCase();    const list = clients.filter(c =>     Object.values(c)       .join(' ')       .toLowerCase()       .includes(search)   );    table.innerHTML = list.map(c => `     <tr>       <td>         <strong>${c.name}</strong>         <small>           ${c.nif === 'Particular' ? 'Particular' : 'NIF ' + c.nif}         </small>       </td>        <td>${c.type}</td>        <td>${c.phone}</td>        <td>${c.last}</td>        <td>         <span class="badge ${           c.classify === 'Activo'             ? 'green-badge'             : ''         }">           ${c.classify}         </span>       </td>        <td>         <span class="badge ${           c.status === 'Activo'             ? 'green-badge'             : ''         }">           ${c.status}         </span>       </td>        <td>         <button           class="small-btn"           data-client-id="${c.id}"         >           Ver         </button>       </td>     </tr>   `).join('') ||   '<tr><td colspan="7">Nenhum cliente encontrado.</td></tr>';    document.getElementById('activeClients').textContent =     clients.filter(c => c.status === 'Activo').length;    document.getElementById('recurringClients').textContent =     clients.filter(c => c.classify === 'Recorrente').length;    document.getElementById('leadClients').textContent =     clients.filter(c => c.classify === 'Lead').length; }const list=db.clients.filter(c=>Object.values(c).join(' ').toLowerCase().includes(query.toLowerCase()));document.getElementById('clientsTable').innerHTML=list.map((c,n)=>`<tr><td><strong>${c.name}</strong><small>${c.nif==='Particular'?'Particular':'NIF '+c.nif}</small></td><td>${c.type}</td><td>${c.phone}</td><td>${c.last}</td><td><span class="badge ${c.classify==='VIP'?'gold':c.classify==='Recorrente'?'blue-badge':''}">${c.classify}</span></td><td><span class="badge green-badge">${c.status}</span></td><td><button class="small-btn" data-client="${n}">Ver</button></td></tr>`).join('')||'<tr><td colspan="7">Nenhum cliente encontrado.</td></tr>';document.getElementById('activeClients').textContent=248+db.clients.filter(c=>c.status==='Activo').length-3;document.getElementById('recurringClients').textContent=36+db.clients.filter(c=>c.classify==='Recorrente').length-1;document.getElementById('leadClients').textContent=18+db.clients.filter(c=>c.classify==='Lead').length}
+async function renderClients(query='') {
+  const table = document.getElementById('clientsTable');
+
+  table.innerHTML =
+    '<tr><td colspan="7">A carregar clientes...</td></tr>';
+
+  const { data, error } = await supabaseClient
+    .from('clients')
+    .select('id,client_code,client_type,name,commercial_name,nif,phone,whatsapp,active')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Erro ao carregar clientes:', error);
+
+    table.innerHTML =
+      `<tr><td colspan="7">Erro ao carregar clientes: ${error.message}</td></tr>`;
+
+    return;
+  }
+
+  const clients = (data || []).map(c => ({
+    id: c.id,
+    name: c.commercial_name || c.name || 'Sem nome',
+    nif: c.nif || 'Particular',
+    type: c.client_type || 'Não definido',
+    phone: c.phone || c.whatsapp || 'Sem contacto',
+    last: 'Sem OS',
+    classify: c.active ? 'Activo' : 'Inactivo',
+    status: c.active ? 'Activo' : 'Inactivo'
+  }));
+
+  const search = query.trim().toLowerCase();
+
+  const list = clients.filter(c =>
+    Object.values(c)
+      .join(' ')
+      .toLowerCase()
+      .includes(search)
+  );
+
+  table.innerHTML = list.map(c => `
+    <tr>
+      <td>
+        <strong>${c.name}</strong>
+        <small>${c.nif === 'Particular' ? 'Particular' : 'NIF ' + c.nif}</small>
+      </td>
+      <td>${c.type}</td>
+      <td>${c.phone}</td>
+      <td>${c.last}</td>
+      <td>
+        <span class="badge ${c.classify === 'Activo' ? 'green-badge' : ''}">
+          ${c.classify}
+        </span>
+      </td>
+      <td>
+        <span class="badge ${c.status === 'Activo' ? 'green-badge' : ''}">
+          ${c.status}
+        </span>
+      </td>
+      <td>
+        <button class="small-btn" data-client-id="${c.id}">
+          Ver
+        </button>
+      </td>
+    </tr>
+  `).join('') || '<tr><td colspan="7">Nenhum cliente encontrado.</td></tr>';
+
+  document.getElementById('activeClients').textContent =
+    clients.filter(c => c.status === 'Activo').length;
+
+  document.getElementById('recurringClients').textContent =
+    clients.filter(c => c.classify === 'Recorrente').length;
+
+  document.getElementById('leadClients').textContent =
+    clients.filter(c => c.classify === 'Lead').length;
+}
 function renderTeam(){const available=db.employees.filter(e=>e.state==='Disponível').length,field=db.employees.filter(e=>e.state==='No local'||e.state==='Em deslocação').length;document.getElementById('teamCount').textContent=db.teams.length;document.getElementById('availableTechs').textContent=available;document.getElementById('fieldTechs').textContent=field;document.getElementById('teamSummary').textContent=`${db.employees.length} colaboradores · ${available} disponíveis · ${field} no terreno.`;document.getElementById('employeesTable').innerHTML=db.employees.map((e,n)=>`<tr><td><strong>${e.name}</strong></td><td>${e.role}</td><td>${e.team}</td><td>${e.phone}</td><td><span class="status ${cls(e.state)}">${e.state}</span></td><td><button class="small-btn" data-employee="${n}">Actualizar</button></td></tr>`).join('')}
 function renderFinance(){document.getElementById('invoicedMetric').textContent=fmt(db.invoices.reduce((x,i)=>x+i.amount,5420000));document.getElementById('receivedMetric').textContent=fmt(db.invoices.filter(i=>i.paid).reduce((x,i)=>x+i.amount,4180000));document.getElementById('receivables').innerHTML=db.invoices.filter(i=>!i.paid).map(i=>`<div class="receivable"><div><span class="badge ${i.state==='VENCIDA'?'red-badge':'gold'}">${i.state}</span><strong>${i.id} · ${fmt(i.amount)}</strong><small>${i.client} · ${i.due}</small></div><button class="small-btn" data-pay="${i.id}">Registar pagamento</button></div>`).join('')||'<p class="muted">Não existem facturas em aberto.</p>'}
 function renderRegistry(module){const m={purchases:['COMPRAS','Compras','Requisições, aprovações, pedidos e recepção de materiais.'],suppliers:['FORNECEDORES','Fornecedores','Cadastro, desempenho e histórico de compras.'],assets:['ACTIVOS','Equipamentos','Equipamentos, QR Code e histórico de manutenção.'],fleet:['FROTA','Viaturas','Quilometragem, manutenção, seguro e custos.'],hr:['RECURSOS HUMANOS','RH e presenças','Colaboradores, assiduidade, férias e documentos.'],documents:['DOCUMENTAL','Documentos','Ficheiros ligados a clientes, contratos e colaboradores.'],audit:['SEGURANÇA','Auditoria','Registo imutável de acções relevantes no sistema.']}[module];window.currentModule=module;document.getElementById('registryEyebrow').textContent=m[0];document.getElementById('registryTitle').textContent=m[1];document.getElementById('registrySubtitle').textContent=m[2];document.getElementById('registryTableTitle').textContent=`${m[1]} recentes`;document.getElementById('registryCreate').textContent=module==='audit'?'Exportar auditoria':'＋ Novo registo';document.getElementById('registryHead').innerHTML='<tr><th>REGISTO</th><th>ESTADO</th><th>DETALHE</th><th>REFERÊNCIA</th><th></th></tr>';document.getElementById('registryBody').innerHTML=db.records[module].map((r,n)=>`<tr><td><strong>${r.name}</strong></td><td><span class="badge ${/Activo|Operacional|Válido/.test(r.status)?'green-badge':''}">${r.status}</span></td><td>${r.date}</td><td>${r.amount}</td><td>${module==='audit'?'':`<button class="small-btn" data-record="${n}">Ver</button>`}</td></tr>`).join('')}
