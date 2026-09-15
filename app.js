@@ -89,13 +89,115 @@ if (forgotPasswordBtn) {
   });
 }
 //
+// AUTENTICAÇÃO FIXE SERVICES ERP
+//
+
+function mostrarERP() {
+  const loginScreen = document.getElementById('loginScreen');
+
+  if (loginScreen) {
+    loginScreen.style.display = 'none';
+  }
+
+  document.body.classList.add('authenticated');
+
+  console.log('FIXE ERP: utilizador autenticado.');
+}
+
+
+function mostrarLogin() {
+  const loginScreen = document.getElementById('loginScreen');
+
+  if (loginScreen) {
+    loginScreen.style.display = 'flex';
+  }
+
+  console.log('FIXE ERP: utilizador não autenticado.');
+}
+
+
+//
+// LOGIN
+//
+
+const loginForm = document.getElementById('loginForm');
+
+if (loginForm) {
+
+  loginForm.addEventListener('submit', async (event) => {
+
+    event.preventDefault();
+
+    const email =
+      document.getElementById('loginEmail').value.trim();
+
+    const password =
+      document.getElementById('loginPassword').value;
+
+    const loginError =
+      document.getElementById('loginError');
+
+    const button =
+      loginForm.querySelector('button[type="submit"]');
+
+    loginError.textContent = '';
+
+    if (!email || !password) {
+      loginError.style.color = '#c00';
+      loginError.textContent =
+        'Introduza o email e a palavra-passe.';
+      return;
+    }
+
+    button.disabled = true;
+    button.textContent = 'A entrar...';
+
+    const { data, error } =
+      await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: password
+      });
+
+    if (error) {
+
+      console.error('Erro de login:', error);
+
+      loginError.style.color = '#c00';
+      loginError.textContent =
+        'Email ou palavra-passe incorretos.';
+
+      button.disabled = false;
+      button.textContent = 'ENTRAR';
+
+      return;
+    }
+
+    console.log('Login efetuado:', data.user);
+
+    mostrarERP();
+
+    button.disabled = false;
+    button.textContent = 'ENTRAR';
+
+  });
+
+}
+
+
+//
 // RECUPERAÇÃO DE PALAVRA-PASSE
 //
 
 function mostrarTelaNovaPassword() {
-  const loginForm = document.getElementById('loginForm');
-  const resetScreen = document.getElementById('resetPasswordScreen');
-  const loginError = document.getElementById('loginError');
+
+  const loginForm =
+    document.getElementById('loginForm');
+
+  const resetScreen =
+    document.getElementById('resetPasswordScreen');
+
+  const loginError =
+    document.getElementById('loginError');
 
   if (loginForm) {
     loginForm.style.display = 'none';
@@ -109,7 +211,8 @@ function mostrarTelaNovaPassword() {
     loginError.textContent = '';
   }
 
-  const loginScreen = document.getElementById('loginScreen');
+  const loginScreen =
+    document.getElementById('loginScreen');
 
   if (loginScreen) {
     loginScreen.style.display = 'flex';
@@ -118,20 +221,114 @@ function mostrarTelaNovaPassword() {
 
 
 //
-// DETECTAR RECUPERAÇÃO DO SUPABASE
+// BOTÃO ESQUECI A PALAVRA-PASSE
 //
 
-supabaseClient.auth.onAuthStateChange((event, session) => {
+const forgotPasswordBtn =
+  document.getElementById('forgotPasswordBtn');
 
-  console.log('Supabase Auth Event:', event);
+if (forgotPasswordBtn) {
 
-  if (event === 'PASSWORD_RECOVERY') {
-    console.log('Modo de recuperação ativado.');
+  forgotPasswordBtn.addEventListener('click', async () => {
 
-    mostrarTelaNovaPassword();
+    const emailInput =
+      document.getElementById('loginEmail');
+
+    const loginError =
+      document.getElementById('loginError');
+
+    const email =
+      emailInput.value.trim();
+
+    if (!email) {
+
+      loginError.style.color = '#c00';
+
+      loginError.textContent =
+        'Introduza primeiro o seu email.';
+
+      emailInput.focus();
+
+      return;
+    }
+
+    forgotPasswordBtn.disabled = true;
+    forgotPasswordBtn.textContent = 'A enviar...';
+
+    loginError.textContent = '';
+
+    const { error } =
+      await supabaseClient.auth.resetPasswordForEmail(
+        email,
+        {
+          redirectTo:
+            window.location.origin +
+            window.location.pathname
+        }
+      );
+
+    if (error) {
+
+      console.error(error);
+
+      loginError.style.color = '#c00';
+
+      loginError.textContent =
+        'Erro: ' + error.message;
+
+    } else {
+
+      loginError.style.color = '#16803c';
+
+      loginError.textContent =
+        'Email enviado. Verifique a sua caixa de entrada e o spam.';
+
+    }
+
+    forgotPasswordBtn.disabled = false;
+
+    forgotPasswordBtn.textContent =
+      'Esqueci a palavra-passe';
+
+  });
+
+}
+
+
+//
+// DETECTAR RECUPERAÇÃO
+//
+
+supabaseClient.auth.onAuthStateChange(
+  (event, session) => {
+
+    console.log(
+      'Supabase Auth Event:',
+      event
+    );
+
+    if (event === 'PASSWORD_RECOVERY') {
+
+      console.log(
+        'Modo de recuperação ativado.'
+      );
+
+      mostrarTelaNovaPassword();
+
+      return;
+    }
+
+    if (
+      session &&
+      event !== 'SIGNED_OUT'
+    ) {
+
+      mostrarERP();
+
+    }
+
   }
-
-});
+);
 
 
 //
@@ -143,73 +340,131 @@ const updatePasswordBtn =
 
 if (updatePasswordBtn) {
 
-  updatePasswordBtn.addEventListener('click', async () => {
+  updatePasswordBtn.addEventListener(
+    'click',
+    async () => {
 
-    const password =
-      document.getElementById('newPassword').value;
+      const password =
+        document.getElementById('newPassword').value;
 
-    const confirmPassword =
-      document.getElementById('confirmPassword').value;
+      const confirmPassword =
+        document.getElementById('confirmPassword').value;
 
-    const message =
-      document.getElementById('resetPasswordMessage');
+      const message =
+        document.getElementById(
+          'resetPasswordMessage'
+        );
 
-    message.textContent = '';
+      message.textContent = '';
 
-    if (password.length < 6) {
-      message.style.color = '#c00';
-      message.textContent =
-        'A palavra-passe deve ter pelo menos 6 caracteres.';
-      return;
-    }
+      if (password.length < 6) {
 
-    if (password !== confirmPassword) {
-      message.style.color = '#c00';
-      message.textContent =
-        'As palavras-passe não coincidem.';
-      return;
-    }
+        message.style.color = '#c00';
 
-    updatePasswordBtn.disabled = true;
-    updatePasswordBtn.textContent = 'A guardar...';
+        message.textContent =
+          'A palavra-passe deve ter pelo menos 6 caracteres.';
 
-    const { error } =
-      await supabaseClient.auth.updateUser({
-        password: password
-      });
+        return;
+      }
 
-    if (error) {
+      if (password !== confirmPassword) {
 
-      console.error(
-        'Erro ao alterar palavra-passe:',
-        error
-      );
+        message.style.color = '#c00';
 
-      message.style.color = '#c00';
-      message.textContent =
-        'Erro ao alterar a palavra-passe: ' +
-        error.message;
+        message.textContent =
+          'As palavras-passe não coincidem.';
 
-      updatePasswordBtn.disabled = false;
+        return;
+      }
+
+      updatePasswordBtn.disabled = true;
+
       updatePasswordBtn.textContent =
-        'DEFINIR NOVA PALAVRA-PASSE';
+        'A guardar...';
 
-      return;
+      const { error } =
+        await supabaseClient.auth.updateUser({
+          password: password
+        });
+
+      if (error) {
+
+        console.error(
+          'Erro ao alterar palavra-passe:',
+          error
+        );
+
+        message.style.color = '#c00';
+
+        message.textContent =
+          'Erro ao alterar a palavra-passe: ' +
+          error.message;
+
+        updatePasswordBtn.disabled = false;
+
+        updatePasswordBtn.textContent =
+          'DEFINIR NOVA PALAVRA-PASSE';
+
+        return;
+      }
+
+      message.style.color = '#16803c';
+
+      message.textContent =
+        'Palavra-passe alterada com sucesso!';
+
+      setTimeout(() => {
+
+        window.location.hash = '';
+
+        mostrarERP();
+
+      }, 1500);
+
     }
-
-    message.style.color = '#16803c';
-
-    message.textContent =
-      'Palavra-passe alterada com sucesso!';
-
-    setTimeout(() => {
-
-      window.location.hash = '';
-
-      window.location.reload();
-
-    }, 1500);
-
-  });
+  );
 
 }
+
+
+//
+// VERIFICAR SESSÃO EXISTENTE AO ABRIR O ERP
+//
+
+(async function verificarSessao() {
+
+  console.log(
+    'FIXE ERP: verificando sessão...'
+  );
+
+  const { data, error } =
+    await supabaseClient.auth.getSession();
+
+  if (error) {
+
+    console.error(
+      'Erro ao verificar sessão:',
+      error
+    );
+
+    mostrarLogin();
+
+    return;
+  }
+
+  if (data.session) {
+
+    console.log(
+      'Sessão encontrada:',
+      data.session.user.email
+    );
+
+    mostrarERP();
+
+  } else {
+
+    mostrarLogin();
+
+  }
+
+})();
