@@ -92,45 +92,67 @@ if (forgotPasswordBtn) {
 // RECUPERAÇÃO DE PALAVRA-PASSE
 //
 
-async function verificarRecuperacaoPassword() {
-  const { data, error } = await supabaseClient.auth.getSession();
+function mostrarTelaNovaPassword() {
+  const loginForm = document.getElementById('loginForm');
+  const resetScreen = document.getElementById('resetPasswordScreen');
+  const loginError = document.getElementById('loginError');
 
-  if (error) {
-    console.error('Erro ao verificar sessão:', error);
-    return;
+  if (loginForm) {
+    loginForm.style.display = 'none';
   }
 
-  const session = data.session;
+  if (resetScreen) {
+    resetScreen.style.display = 'block';
+  }
 
-  // Verifica se estamos numa sessão de recuperação
-  if (session && window.location.hash.includes('type=recovery')) {
-    const loginScreen = document.getElementById('loginScreen');
-    const loginForm = document.getElementById('loginForm');
-    const resetScreen = document.getElementById('resetPasswordScreen');
+  if (loginError) {
+    loginError.textContent = '';
+  }
 
-    if (loginForm) loginForm.style.display = 'none';
-    if (resetScreen) resetScreen.style.display = 'block';
-    if (loginScreen) loginScreen.style.display = 'flex';
+  const loginScreen = document.getElementById('loginScreen');
 
-    console.log('Modo de recuperação de palavra-passe ativado.');
+  if (loginScreen) {
+    loginScreen.style.display = 'flex';
   }
 }
 
-verificarRecuperacaoPassword();
+
+//
+// DETECTAR RECUPERAÇÃO DO SUPABASE
+//
+
+supabaseClient.auth.onAuthStateChange((event, session) => {
+
+  console.log('Supabase Auth Event:', event);
+
+  if (event === 'PASSWORD_RECOVERY') {
+    console.log('Modo de recuperação ativado.');
+
+    mostrarTelaNovaPassword();
+  }
+
+});
 
 
 //
 // DEFINIR NOVA PALAVRA-PASSE
 //
 
-const updatePasswordBtn = document.getElementById('updatePasswordBtn');
+const updatePasswordBtn =
+  document.getElementById('updatePasswordBtn');
 
 if (updatePasswordBtn) {
+
   updatePasswordBtn.addEventListener('click', async () => {
 
-    const password = document.getElementById('newPassword').value;
-    const confirmPassword = document.getElementById('confirmPassword').value;
-    const message = document.getElementById('resetPasswordMessage');
+    const password =
+      document.getElementById('newPassword').value;
+
+    const confirmPassword =
+      document.getElementById('confirmPassword').value;
+
+    const message =
+      document.getElementById('resetPasswordMessage');
 
     message.textContent = '';
 
@@ -151,15 +173,22 @@ if (updatePasswordBtn) {
     updatePasswordBtn.disabled = true;
     updatePasswordBtn.textContent = 'A guardar...';
 
-    const { error } = await supabaseClient.auth.updateUser({
-      password: password
-    });
+    const { error } =
+      await supabaseClient.auth.updateUser({
+        password: password
+      });
 
     if (error) {
-      console.error(error);
+
+      console.error(
+        'Erro ao alterar palavra-passe:',
+        error
+      );
+
       message.style.color = '#c00';
       message.textContent =
-        'Erro ao alterar a palavra-passe: ' + error.message;
+        'Erro ao alterar a palavra-passe: ' +
+        error.message;
 
       updatePasswordBtn.disabled = false;
       updatePasswordBtn.textContent =
@@ -169,12 +198,18 @@ if (updatePasswordBtn) {
     }
 
     message.style.color = '#16803c';
+
     message.textContent =
-      'Palavra-passe alterada com sucesso! A entrar no sistema...';
+      'Palavra-passe alterada com sucesso!';
 
     setTimeout(() => {
+
       window.location.hash = '';
+
       window.location.reload();
+
     }, 1500);
+
   });
+
 }
